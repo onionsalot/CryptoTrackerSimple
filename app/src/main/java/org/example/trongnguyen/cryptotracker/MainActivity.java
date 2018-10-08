@@ -1,24 +1,25 @@
 package org.example.trongnguyen.cryptotracker;
 
+
+import android.app.LoaderManager;
 import android.content.Intent;
+import android.content.Loader;
 import android.os.AsyncTask;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.util.Log;
 import android.view.View;
 import android.widget.Button;
-import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
-
-import java.io.IOException;
-import java.lang.reflect.Array;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.List;
 
-public class MainActivity extends AppCompatActivity implements TickerAdapter.ListItemClickListener {
+public class MainActivity extends AppCompatActivity implements TickerAdapter.ListItemClickListener, LoaderManager.LoaderCallbacks<List<Ticker>> {
 
     ArrayList<Ticker> tickerList = new ArrayList<>();
     private Toast mToast;
@@ -26,6 +27,8 @@ public class MainActivity extends AppCompatActivity implements TickerAdapter.Lis
     private Button addButton;
     private Button searchButton;
     TickerAdapter adapter;
+    URL currencyURL;
+    String[] searchItems;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -61,18 +64,22 @@ public class MainActivity extends AppCompatActivity implements TickerAdapter.Lis
                 startActivity(intent);
             }
         });
+        searchItems = new String[]{"BTC", "ETH"};
+        makeCurrencyQuery(searchItems);
         // initialize the ticker;
 //        Ticker ticker = new Ticker("Bitcoin", "1000");
 //        tickerList.add(ticker);
 //        ticker = new Ticker("Ethereum", "10000");
 //        tickerList.add(ticker);
-        String [] arrayString = {"BTC", "ETH"};
-        makeCurrencyQuery(arrayString);
+        LoaderManager loaderManager = getLoaderManager();
+        loaderManager.initLoader(0, null, this);
+
+
 
     }
 
     public void makeCurrencyQuery(String[] currency) {
-        new FetchCurrencyData().execute(currency);
+        currencyURL = NetworkUtils.buildUrl(currency);
     }
     @Override
     public void onListItemClick(int clickedIndex) {
@@ -86,6 +93,24 @@ public class MainActivity extends AppCompatActivity implements TickerAdapter.Lis
 //            makeCurrencyQuery("ETH");
 //        }
     }
+
+    @Override
+    public Loader<List<Ticker>> onCreateLoader(int i, Bundle bundle) {
+        return new CryptoLoader(this,currencyURL,searchItems);
+    }
+
+    @Override
+    public void onLoadFinished(Loader<List<Ticker>> loader, List<Ticker> tickers) {
+        if (tickers != null) {
+            tickerList.addAll(tickers);
+            adapter.notifyDataSetChanged();
+        }
+    }
+
+    @Override
+    public void onLoaderReset(Loader<List<Ticker>> loader) {
+    }
+
 
     // AsyncTask method used to fetch the data.
     public class FetchCurrencyData extends AsyncTask<String, Void, ArrayList<Ticker>> {
