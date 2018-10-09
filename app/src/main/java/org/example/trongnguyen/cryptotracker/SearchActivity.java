@@ -1,5 +1,7 @@
 package org.example.trongnguyen.cryptotracker;
 
+import android.app.LoaderManager;
+import android.content.Loader;
 import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -15,14 +17,17 @@ import android.widget.Toast;
 
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.List;
 
-public class SearchActivity extends AppCompatActivity implements TickerAdapter.ListItemClickListener{
+public class SearchActivity extends AppCompatActivity implements TickerAdapter.ListItemClickListener, LoaderManager.LoaderCallbacks<List<Ticker>>{
     Toast mToast;
     ArrayList<Ticker> tickerList = new ArrayList<>();
     private EditText mEditText;
     private Button mSearchButton;
     private RecyclerView mRecyclerView;
     TickerAdapter adapter;
+    private static String OPERATION_ADD = "add";
+    private static String GET_URL = "url";
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -55,36 +60,36 @@ public class SearchActivity extends AppCompatActivity implements TickerAdapter.L
     private void QueryForCoins(String searchText) {
         tickerList.clear();
         adapter.notifyDataSetChanged();
-        new FetchCurrencyData().execute(searchText);
+        LoaderManager loaderManager = getLoaderManager();
+        Loader<String> loader = loaderManager.getLoader(22);
+        Bundle bundle = new Bundle();
+        //TODO fix this. Temp solution. Need to split words user types into an array to search.
+        String[] searchItems = new String[]{searchText};
+        bundle.putStringArray(OPERATION_ADD, searchItems);
+        String currencyURL = NetworkUtils.buildUri();
+        bundle.putString(GET_URL, currencyURL);
+        if (loader == null) {
+            loaderManager.initLoader(20,bundle,this);
+        } else {
+            loaderManager.restartLoader(20,bundle,this);
+        }
     }
 
-    // AsyncTask method used to fetch the data.
-    public class FetchCurrencyData extends AsyncTask<String, Void, ArrayList<Ticker>> {
+    @Override
+    public Loader<List<Ticker>> onCreateLoader(int i, Bundle bundle) {
 
-        @Override
-        protected ArrayList<Ticker> doInBackground(String... strings) {
-            if (strings.length == 0) {
-                return null;
-            }
+        return new CryptoLoader(this,bundle);
+    }
 
-            URL currencyURL = NetworkUtils.buildUrl();
-            try {
-                String currencyResults = NetworkUtils.getResponseFromHttpUrl(currencyURL);
-                ArrayList<Ticker> list = NetworkUtils.extractFeatureFromJson(currencyResults,strings,"USD",1);
-
-                return list;
-            } catch ( Exception e) {
-                e.printStackTrace();
-                return null;
-            }
+    @Override
+    public void onLoadFinished(Loader<List<Ticker>> loader, List<Ticker> tickers) {
+        if (tickers != null) {
+            tickerList.addAll(tickers);
+            adapter.notifyDataSetChanged();
         }
+    }
 
-        @Override
-        protected void onPostExecute(ArrayList<Ticker> s) {
-            if (s != null) {
-                tickerList.addAll(s);
-                adapter.notifyDataSetChanged();
-            }
-        }
+    @Override
+    public void onLoaderReset(Loader<List<Ticker>> loader) {
     }
 }

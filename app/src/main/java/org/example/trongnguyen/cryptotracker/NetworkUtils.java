@@ -27,7 +27,7 @@ public class NetworkUtils {
     final static String CRYPTOCOMPARE_BASE_PICTURE_URL= "https://www.cryptocompare.com";
 
     // buildUrl method used to get the url
-    public static URL buildUrl (String[] currency) {
+    public static String buildUri (String[] currency) {
         StringBuilder builder = new StringBuilder();
         for (String s : currency) {
             builder.append(s);
@@ -40,33 +40,28 @@ public class NetworkUtils {
                 .appendQueryParameter(PARAM_FIAT, "USD")
                 .build();
 
-        URL url = null;
-        try {
-            url = new URL(buildUri.toString());
-        } catch (MalformedURLException e) {
-            e.printStackTrace();
-        }
 
-        Log.d(TAG, "buildUrl: CURRENT URL IS " + url);
-        return url;
+
+        Log.d(TAG, "buildUrl: CURRENT URL IS " + buildUri.toString());
+        return buildUri.toString();
     }
     // buildUrl method with no params used to get the URL of the coin list
-    public static URL buildUrl () {
+    public static String buildUri () {
         Uri buildUri = Uri.parse(CRYPTOCOMPARE_COINLIST).buildUpon()
                 .build();
 
+        return buildUri.toString();
+    }
+
+    public static URL buildURL (String builtString) {
         URL url = null;
         try {
-            url = new URL(buildUri.toString());
+            url = new URL(builtString);
         } catch (MalformedURLException e) {
             e.printStackTrace();
         }
-
-        Log.d(TAG, "buildUrl: CURRENT URL IS " + url);
         return url;
     }
-
-
     // getResponseFromHttpUrl used to get the results from the HTTP response.
     public static String getResponseFromHttpUrl(URL url) throws IOException {
         HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();

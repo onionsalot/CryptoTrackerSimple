@@ -27,8 +27,10 @@ public class MainActivity extends AppCompatActivity implements TickerAdapter.Lis
     private Button addButton;
     private Button searchButton;
     TickerAdapter adapter;
-    URL currencyURL;
+    String currencyURL;
     String[] searchItems;
+    private static String OPERATION_ADD = "add";
+    private static String GET_URL = "url";
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -52,8 +54,8 @@ public class MainActivity extends AppCompatActivity implements TickerAdapter.Lis
         addButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                String[] testArray = {"VEN"};
-                makeCurrencyQuery(testArray);
+                searchItems = new String[]{"VEN"};
+                makeCurrencyQuery(searchItems);
             }
         });
         searchButton = (Button) findViewById(R.id.search_test);
@@ -71,16 +73,25 @@ public class MainActivity extends AppCompatActivity implements TickerAdapter.Lis
 //        tickerList.add(ticker);
 //        ticker = new Ticker("Ethereum", "10000");
 //        tickerList.add(ticker);
-        LoaderManager loaderManager = getLoaderManager();
-        loaderManager.initLoader(0, null, this);
+
 
 
 
     }
 
     public void makeCurrencyQuery(String[] currency) {
-        currencyURL = NetworkUtils.buildUrl(currency);
-    }
+        currencyURL = NetworkUtils.buildUri(currency);
+        LoaderManager loaderManager = getLoaderManager();
+        Loader<String> loader = loaderManager.getLoader(22);
+        Bundle bundle = new Bundle();
+        bundle.putStringArray(OPERATION_ADD, searchItems);
+        bundle.putString(GET_URL, currencyURL);
+        if (loader == null) {
+            loaderManager.initLoader(22,bundle,this);
+        } else {
+            loaderManager.restartLoader(22,bundle,this);
+        }
+}
     @Override
     public void onListItemClick(int clickedIndex) {
         mToast = Toast.makeText(this, "Item clicked " + clickedIndex, Toast.LENGTH_SHORT);
@@ -96,7 +107,8 @@ public class MainActivity extends AppCompatActivity implements TickerAdapter.Lis
 
     @Override
     public Loader<List<Ticker>> onCreateLoader(int i, Bundle bundle) {
-        return new CryptoLoader(this,currencyURL,searchItems);
+
+        return new CryptoLoader(this,bundle);
     }
 
     @Override
@@ -111,35 +123,4 @@ public class MainActivity extends AppCompatActivity implements TickerAdapter.Lis
     public void onLoaderReset(Loader<List<Ticker>> loader) {
     }
 
-
-    // AsyncTask method used to fetch the data.
-    public class FetchCurrencyData extends AsyncTask<String, Void, ArrayList<Ticker>> {
-
-        @Override
-        protected ArrayList<Ticker> doInBackground(String... strings) {
-            if (strings.length == 0) {
-                return null;
-            }
-
-            //String currencyQuery = strings[0];
-            URL currencyURL = NetworkUtils.buildUrl(strings);
-            try {
-                String currencyResults = NetworkUtils.getResponseFromHttpUrl(currencyURL);
-                ArrayList<Ticker> list = NetworkUtils.extractFeatureFromJson(currencyResults,strings,"USD", 0);
-
-                return list;
-            } catch ( Exception e) {
-                e.printStackTrace();
-                return null;
-            }
-        }
-
-        @Override
-        protected void onPostExecute(ArrayList<Ticker> s) {
-            if (s != null) {
-                tickerList.addAll(s);
-                adapter.notifyDataSetChanged();
-            }
-        }
-    }
 }
