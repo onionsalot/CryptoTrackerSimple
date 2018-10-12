@@ -55,7 +55,13 @@ public class CryptoCursorAdapter extends RecyclerView.Adapter<CryptoCursorAdapte
 
 
             }
+
+            @Override
+            public Cursor swapCursor(Cursor newCursor) {
+                return super.swapCursor(newCursor);
+            }
         };
+
     }
 
     @NonNull
@@ -100,4 +106,8 @@ public class CryptoCursorAdapter extends RecyclerView.Adapter<CryptoCursorAdapte
         void onListItemClick(int clickedIndex);
     }
 
+    public void changeCursor (Cursor cursor) {
+        mCursorAdapter.swapCursor(cursor);
+        this.notifyDataSetChanged();
+    }
 }

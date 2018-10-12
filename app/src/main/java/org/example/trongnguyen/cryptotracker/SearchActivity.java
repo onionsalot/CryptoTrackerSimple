@@ -59,6 +59,7 @@ public class SearchActivity extends AppCompatActivity implements TickerAdapter.L
         Ticker ticker = tickerList.get(clickedIndex);
         Intent intent = new Intent();
         intent.putExtra("addedCrypto", ticker.getTicker());
+        intent.putExtra("addedCryptoName", ticker.getName());
         setResult(RESULT_OK, intent);
         finish();
     }
