@@ -18,11 +18,19 @@ public class CryptoLoader extends AsyncTaskLoader<List<Ticker>> {
     String[] mStrings;
     private static String OPERATION_ADD = "add";
     private static String GET_URL = "url";
+    final static String CRYPTOCOMPARE_COINLIST= "https://www.cryptocompare.com/api/data/coinlist/";
+    private int jsonType = 0;
     public CryptoLoader(@NonNull Context context, Bundle bundle) {
         super(context);
         Log.d(TAG, "CryptoLoader: stated");
         mURL = bundle.getString(GET_URL);
         mStrings = bundle.getStringArray(OPERATION_ADD);
+
+        if (mURL.equals(CRYPTOCOMPARE_COINLIST)) {
+            jsonType = 1;
+        } else {
+            jsonType = 0;
+        }
     }
 
     @Override
@@ -40,7 +48,7 @@ public class CryptoLoader extends AsyncTaskLoader<List<Ticker>> {
         try {
             URL searchURL = NetworkUtils.buildURL(mURL);
             String currencyResults = NetworkUtils.getResponseFromHttpUrl(searchURL);
-            ArrayList<Ticker> list = NetworkUtils.extractFeatureFromJson(currencyResults,mStrings,"USD", 0);
+            ArrayList<Ticker> list = NetworkUtils.extractFeatureFromJson(currencyResults,mStrings,"USD", jsonType);
 
             return list;
         } catch ( Exception e) {
@@ -49,4 +57,6 @@ public class CryptoLoader extends AsyncTaskLoader<List<Ticker>> {
         }
 
     }
+
+
 }

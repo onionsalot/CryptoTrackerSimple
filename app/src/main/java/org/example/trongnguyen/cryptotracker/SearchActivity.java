@@ -1,6 +1,7 @@
 package org.example.trongnguyen.cryptotracker;
 
 import android.app.LoaderManager;
+import android.content.Intent;
 import android.content.Loader;
 import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
@@ -55,6 +56,11 @@ public class SearchActivity extends AppCompatActivity implements TickerAdapter.L
     public void onListItemClick(int clickedIndex) {
         mToast = Toast.makeText(this, "Item clicked " + clickedIndex, Toast.LENGTH_SHORT);
         mToast.show();
+        Ticker ticker = tickerList.get(clickedIndex);
+        Intent intent = new Intent();
+        intent.putExtra("addedCrypto", ticker.getTicker());
+        setResult(RESULT_OK, intent);
+        finish();
     }
 
     private void QueryForCoins(String searchText) {

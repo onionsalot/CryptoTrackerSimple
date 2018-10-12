@@ -19,8 +19,11 @@
             </intent-filter>
         </activity>
         <activity android:name=".SearchActivity">
-
         </activity>
+        <provider
+            android:name=".database.CryptoProvider"
+            android:authorities="com.example.trongnguyen.cryptotracker"
+            android:exported="false" />
     </application>
 
 </manifest>
