@@ -24,6 +24,15 @@ public class CryptoCursorAdapter extends RecyclerView.Adapter<CryptoCursorAdapte
     Context mContext;
     final private ListItemClickListener mOnClickListener;
 
+    @Override
+    public long getItemId(int position) {
+        return super.getItemId(position);
+    }
+    @Override
+    public int getItemViewType(int position) {
+        return position;
+    }
+
     public CryptoCursorAdapter(Context context, Cursor c, ListItemClickListener listener) {
         mContext = context;
         mOnClickListener = listener;
@@ -32,15 +41,14 @@ public class CryptoCursorAdapter extends RecyclerView.Adapter<CryptoCursorAdapte
             public View newView(Context context, Cursor cursor, ViewGroup parent) {
                 LayoutInflater inflater = LayoutInflater.from(context);
                 // Inflate custom view
-                View tickerView = inflater.inflate(R.layout.individual_item, parent, false);
 
-                return tickerView;
+                return inflater.inflate(R.layout.individual_item, parent, false);
             }
 
             @Override
             public void bindView(View view, Context context, Cursor cursor) {
 
-
+                Log.d(TAG, "bindView: " +  cursor.getPosition() + "");
                 // Find the columns of pet attributes that we're interested in
                 int nameColumnIndex = cursor.getColumnIndex(CryptoContract.CryptoEntry.COLUMN_CRYPTO_NAME);
                 int priceColumnIndex = cursor.getColumnIndex(CryptoContract.CryptoEntry.COLUMN_CRYPTO_PRICE);
@@ -53,12 +61,11 @@ public class CryptoCursorAdapter extends RecyclerView.Adapter<CryptoCursorAdapte
                 nameTextView.setText(cryptoName);
                 priceTextView.setText(cryptoPrice);
 
-
             }
 
             @Override
-            public Cursor swapCursor(Cursor newCursor) {
-                return super.swapCursor(newCursor);
+            public Cursor getCursor() {
+                return super.getCursor();
             }
         };
 
@@ -86,6 +93,7 @@ public class CryptoCursorAdapter extends RecyclerView.Adapter<CryptoCursorAdapte
 
     public class ViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener{
 
+
         public ViewHolder(View itemView) {
             super(itemView);
             nameTextView = (TextView) itemView.findViewById(R.id.tv_name);
@@ -107,7 +115,11 @@ public class CryptoCursorAdapter extends RecyclerView.Adapter<CryptoCursorAdapte
     }
 
     public void changeCursor (Cursor cursor) {
-        mCursorAdapter.swapCursor(cursor);
-        this.notifyDataSetChanged();
+        this.mCursorAdapter.swapCursor(cursor);
+        notifyDataSetChanged();
+    }
+
+    public Cursor getCursor(){
+        return mCursorAdapter.getCursor();
     }
 }

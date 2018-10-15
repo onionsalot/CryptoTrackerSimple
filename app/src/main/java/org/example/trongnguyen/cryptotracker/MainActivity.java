@@ -44,27 +44,15 @@ public class MainActivity extends AppCompatActivity implements CryptoCursorAdapt
     String[] searchItems;
     private static String OPERATION_ADD = "add";
     private static String GET_URL = "url";
-    private CryptoDbHelper mDbHelper;
     // Used to get the FULL name from searchActivity. For some reason base API does not contain
     // coin title, only coin ticker symbol.
     private String addedName;
-    private String addedTicker;
-    private String addedPrice;
+    private boolean addOrNah;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         Log.d("Test", "onCreate: called");
-        //RecyclerView rvTickers = (RecyclerView) findViewById(R.id.main_recycler);
-
-
-        // Create the Adapter
-        //adapter = new TickerAdapter(tickerList, this, false);
-        // Attach the adapter to the recycler view
-        //rvTickers.setAdapter(adapter);
-        // Set layout manager to the position of the items
-        //LinearLayoutManager layoutManager = new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false);
-        //rvTickers.setLayoutManager(layoutManager);
 
         // Temporary Text View
         mDataPrint = (TextView) findViewById(R.id.print_data);
@@ -90,15 +78,17 @@ public class MainActivity extends AppCompatActivity implements CryptoCursorAdapt
 //        } else {
 //            getLoaderManager().initLoader(22,null,this);
 //        }
+        RecyclerView recyclerView = (RecyclerView) findViewById(R.id.main_recycler);
+        mCryptoCursorAdapter = new CryptoCursorAdapter(this, null, this);
+        LinearLayoutManager layoutManager = new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false);
+        recyclerView.setLayoutManager(layoutManager);
+        recyclerView.setAdapter(mCryptoCursorAdapter);
 
-        sqlStuff();
 
-        getLoaderManager().initLoader(CURSOR_LOADER,null,this);
 
     }
 
     public void tempAdd() {
-
         ContentValues values = new ContentValues();
         values.put(CryptoContract.CryptoEntry.COLUMN_CRYPTO_NAME, "Bitcoin");
         values.put(CryptoContract.CryptoEntry.COLUMN_CRYPTO_TICKER, "BTC");
@@ -110,13 +100,11 @@ public class MainActivity extends AppCompatActivity implements CryptoCursorAdapt
     }
 
 
-    public void sqlStuff() {
 
-        RecyclerView recyclerView = (RecyclerView) findViewById(R.id.main_recycler);
-        mCryptoCursorAdapter = new CryptoCursorAdapter(this, null, this);
-        LinearLayoutManager layoutManager = new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false);
-        recyclerView.setLayoutManager(layoutManager);
-        recyclerView.setAdapter(mCryptoCursorAdapter);
+    @Override
+    protected void onResume() {
+        super.onResume();
+        getLoaderManager().initLoader(CURSOR_LOADER,null,this);
 
     }
 
@@ -129,6 +117,7 @@ public class MainActivity extends AppCompatActivity implements CryptoCursorAdapt
             if (resultCode == RESULT_OK) {
                 searchItems = new String[] {data.getStringExtra("addedCrypto")};
                 addedName = data.getStringExtra("addedCryptoName");
+                addOrNah =  true;
                 makeCurrencyQuery(searchItems);
             }
         }
@@ -168,6 +157,11 @@ public class MainActivity extends AppCompatActivity implements CryptoCursorAdapt
     public void onListItemClick(int clickedIndex) {
         mToast = Toast.makeText(this, "Item clicked " + clickedIndex, Toast.LENGTH_SHORT);
         mToast.show();
+        Cursor cursor = mCryptoCursorAdapter.getCursor();
+        cursor.moveToPosition(clickedIndex);
+        int nameColumnIndex = cursor.getColumnIndex(CryptoContract.CryptoEntry.COLUMN_CRYPTO_NAME);
+        String name = cursor.getString(nameColumnIndex);
+        mDataPrint.setText(name);
 //        if (clickedIndex == 0) {
 //            makeCurrencyQuery("BTC");
 //        } else {
@@ -175,11 +169,6 @@ public class MainActivity extends AppCompatActivity implements CryptoCursorAdapt
 //        }
     }
 
-    @Override
-    protected void onResume() {
-        Log.d(TAG, "onResume() called");
-        super.onResume();
-    }
 
     @Override
     public Loader onCreateLoader(int i, Bundle bundle) {
@@ -217,10 +206,13 @@ public class MainActivity extends AppCompatActivity implements CryptoCursorAdapt
                 Log.d(TAG, "onLoadFinished: tickerlist contains" + tickerList.toString() + tickerList.size());
                 Ticker ticker = list.get(0);
                 Log.d(TAG, "onLoadFinished: ticker = " + ticker.getName() + ticker.getPrice() + ticker.getTicker());
-                addedTicker = ticker.getName();
-                addedPrice = ticker.getPrice();
+                String loadTicker = ticker.getName();
+                String loadPrice = ticker.getPrice();
                 getLoaderManager().destroyLoader(TICKER_LOADER);
-                getLoaderManager().initLoader(CURSOR_LOADER,null,this);
+                if (addOrNah) {
+                    addResults(addedName,loadTicker,loadPrice);
+                    addOrNah = false;
+                }
             } else if (id == CURSOR_LOADER) {
                 Log.d(TAG, "onLoadFinished for cursor called");
                 Cursor cursor = (Cursor) data;
@@ -236,10 +228,21 @@ public class MainActivity extends AppCompatActivity implements CryptoCursorAdapt
         int id = loader.getId();
         if (id == TICKER_LOADER) {
         } else if (id == CURSOR_LOADER){
+            mCryptoCursorAdapter.changeCursor(null);
         }
     }
 
+    public void addResults(String name, String ticker, String price) {
 
+        ContentValues values = new ContentValues();
+        values.put(CryptoContract.CryptoEntry.COLUMN_CRYPTO_NAME, name);
+        values.put(CryptoContract.CryptoEntry.COLUMN_CRYPTO_TICKER, ticker);
+        values.put(CryptoContract.CryptoEntry.COLUMN_CRYPTO_PRICE, price);
+        values.put(CryptoContract.CryptoEntry.COLUMN_INTERNAL_NUMBER, "0");
+
+        Uri newUri = getContentResolver().insert(CryptoContract.CryptoEntry.CONTENT_URL,values);
+        mCryptoCursorAdapter.notifyDataSetChanged();
+    }
 
 
 }
