@@ -7,14 +7,17 @@ import android.content.CursorLoader;
 import android.content.Intent;
 import android.content.Loader;
 
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
+import android.preference.PreferenceManager;
 import android.provider.BaseColumns;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -32,6 +35,7 @@ public class MainActivity extends AppCompatActivity implements CryptoCursorAdapt
 
     private int TICKER_LOADER = 0;
     private int CURSOR_LOADER = 1;
+    private int DATABASE_UPDATE_LOADER = 2;
 
     private static final String TAG = "MainActivity";
     ArrayList<Ticker> tickerList = new ArrayList<>();
@@ -39,20 +43,32 @@ public class MainActivity extends AppCompatActivity implements CryptoCursorAdapt
     private TextView mDataPrint;
     private Button addButton;
     private Button searchButton;
+    private Button updateButton;
     CryptoCursorAdapter mCryptoCursorAdapter;
     String currencyURL;
     String[] searchItems;
     private static String OPERATION_ADD = "add";
+    private static String OPERATION_UPDATE = "update";
     private static String GET_URL = "url";
     // Used to get the FULL name from searchActivity. For some reason base API does not contain
     // coin title, only coin ticker symbol.
     private String addedName;
     private boolean addOrNah;
+    private boolean updateData;
+    RecyclerView recyclerView;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        Log.d("Test", "onCreate: called");
+        SharedPreferences SP = PreferenceManager.getDefaultSharedPreferences(this);
+        if(!SP.getBoolean("firstLaunch", false)) {
+            tempAdd();
+            SharedPreferences.Editor editor = SP.edit();
+            editor.putBoolean("firstLaunch", true);
+            editor.apply();
+        }
+
+        updateData = true;
 
         // Temporary Text View
         mDataPrint = (TextView) findViewById(R.id.print_data);
@@ -72,13 +88,21 @@ public class MainActivity extends AppCompatActivity implements CryptoCursorAdapt
                 startActivityForResult(intent, 1);
             }
         });
+        updateButton = (Button) findViewById(R.id.update_test);
+        updateButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                updateData = true;
+                getLoaderManager().initLoader(CURSOR_LOADER,null,MainActivity.this);
+            }
+        });
 //        if (savedInstanceState == null) {
 //            searchItems = new String[]{"BTC", "ETH"};
 //            makeCurrencyQuery(searchItems);
 //        } else {
 //            getLoaderManager().initLoader(22,null,this);
 //        }
-        RecyclerView recyclerView = (RecyclerView) findViewById(R.id.main_recycler);
+        recyclerView = (RecyclerView) findViewById(R.id.main_recycler);
         mCryptoCursorAdapter = new CryptoCursorAdapter(this, null, this);
         LinearLayoutManager layoutManager = new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false);
         recyclerView.setLayoutManager(layoutManager);
@@ -96,7 +120,7 @@ public class MainActivity extends AppCompatActivity implements CryptoCursorAdapt
         values.put(CryptoContract.CryptoEntry.COLUMN_INTERNAL_NUMBER, "0");
 
         Uri newUri = getContentResolver().insert(CryptoContract.CryptoEntry.CONTENT_URL,values);
-        mCryptoCursorAdapter.notifyDataSetChanged();
+
     }
 
 
@@ -203,23 +227,31 @@ public class MainActivity extends AppCompatActivity implements CryptoCursorAdapt
                 ArrayList<Ticker> list = (ArrayList<Ticker>) data;
                 tickerList.clear();
                 tickerList.addAll(list);
-                Log.d(TAG, "onLoadFinished: tickerlist contains" + tickerList.toString() + tickerList.size());
                 Ticker ticker = list.get(0);
-                Log.d(TAG, "onLoadFinished: ticker = " + ticker.getName() + ticker.getPrice() + ticker.getTicker());
                 String loadTicker = ticker.getName();
                 String loadPrice = ticker.getPrice();
                 getLoaderManager().destroyLoader(TICKER_LOADER);
                 if (addOrNah) {
                     addResults(addedName,loadTicker,loadPrice);
                     addOrNah = false;
+                } else if (updateData) {
+                    updateData = false;
+                    updateItem(list);
                 }
             } else if (id == CURSOR_LOADER) {
                 Log.d(TAG, "onLoadFinished for cursor called");
                 Cursor cursor = (Cursor) data;
 
-                mCryptoCursorAdapter.changeCursor(cursor);
+                mCryptoCursorAdapter.swapCursor(cursor);
+                if (updateData) {
+                    ArrayList<String> fetchList = new ArrayList<String>();
+                    for (cursor.moveToFirst(); !cursor.isAfterLast(); cursor.moveToNext()) {
+                        fetchList.add(cursor.getString(3));
+                    }
+                    searchItems = fetchList.toArray(new String[0]);
+                    makeCurrencyQuery(searchItems);
+                }
             }
-
         }
     }
 
@@ -228,7 +260,7 @@ public class MainActivity extends AppCompatActivity implements CryptoCursorAdapt
         int id = loader.getId();
         if (id == TICKER_LOADER) {
         } else if (id == CURSOR_LOADER){
-            mCryptoCursorAdapter.changeCursor(null);
+            mCryptoCursorAdapter.swapCursor(null);
         }
     }
 
@@ -244,5 +276,23 @@ public class MainActivity extends AppCompatActivity implements CryptoCursorAdapt
         mCryptoCursorAdapter.notifyDataSetChanged();
     }
 
+    private void updateItem(ArrayList<Ticker> list) {
+        ContentValues values = new ContentValues();
+        String[] args = new String[list.size()];
+        for (int i=0; i< list.size(); i++) {
+            Ticker ticker = list.get(i);
+            values.put(CryptoContract.CryptoEntry.COLUMN_CRYPTO_PRICE, ticker.getPrice());
+            args[i] = ticker.getName();
+            String selection = CryptoContract.CryptoEntry.COLUMN_CRYPTO_TICKER + "='" + args[i]+"'";
+            Log.d(TAG, "updateItem: Updating items = " + selection);
+            getContentResolver().update(CryptoContract.CryptoEntry.CONTENT_URL, values, selection,null);
+            mCryptoCursorAdapter.notifyDataSetChanged();
+        }
+
+        mToast = Toast.makeText(this, " Update done ", Toast.LENGTH_SHORT);
+        mToast.show();
+
+        recyclerView.setAdapter(mCryptoCursorAdapter);
+    }
 
 }

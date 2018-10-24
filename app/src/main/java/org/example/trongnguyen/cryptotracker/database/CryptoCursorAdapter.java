@@ -22,6 +22,7 @@ public class CryptoCursorAdapter extends RecyclerView.Adapter<CryptoCursorAdapte
     public TextView mPicture;
     CursorAdapter mCursorAdapter;
     Context mContext;
+    Cursor mCursor;
     final private ListItemClickListener mOnClickListener;
 
     @Override
@@ -36,6 +37,7 @@ public class CryptoCursorAdapter extends RecyclerView.Adapter<CryptoCursorAdapte
     public CryptoCursorAdapter(Context context, Cursor c, ListItemClickListener listener) {
         mContext = context;
         mOnClickListener = listener;
+        mCursor = c;
         mCursorAdapter = new CursorAdapter(mContext, c, 0) {
             @Override
             public View newView(Context context, Cursor cursor, ViewGroup parent) {
@@ -47,8 +49,6 @@ public class CryptoCursorAdapter extends RecyclerView.Adapter<CryptoCursorAdapte
 
             @Override
             public void bindView(View view, Context context, Cursor cursor) {
-
-                Log.d(TAG, "bindView: " +  cursor.getPosition() + "");
                 // Find the columns of pet attributes that we're interested in
                 int nameColumnIndex = cursor.getColumnIndex(CryptoContract.CryptoEntry.COLUMN_CRYPTO_NAME);
                 int priceColumnIndex = cursor.getColumnIndex(CryptoContract.CryptoEntry.COLUMN_CRYPTO_PRICE);
@@ -64,8 +64,19 @@ public class CryptoCursorAdapter extends RecyclerView.Adapter<CryptoCursorAdapte
             }
 
             @Override
+            public void notifyDataSetChanged() {
+                super.notifyDataSetChanged();
+            }
+
+            @Override
+            public Cursor swapCursor(Cursor newCursor) {
+                return super.swapCursor(newCursor);
+            }
+
+            @Override
             public Cursor getCursor() {
                 return super.getCursor();
+
             }
         };
 
@@ -114,10 +125,11 @@ public class CryptoCursorAdapter extends RecyclerView.Adapter<CryptoCursorAdapte
         void onListItemClick(int clickedIndex);
     }
 
-    public void changeCursor (Cursor cursor) {
+    public void swapCursor(Cursor cursor) {
         this.mCursorAdapter.swapCursor(cursor);
         notifyDataSetChanged();
     }
+
 
     public Cursor getCursor(){
         return mCursorAdapter.getCursor();

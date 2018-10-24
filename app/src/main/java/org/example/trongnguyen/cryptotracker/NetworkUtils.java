@@ -120,7 +120,6 @@ public class NetworkUtils {
                 if (currencyArray.length() > 0) {
                     for (int i = 0; i < currencyArray.length(); i++){
                         JSONObject itemCurrencies = currencyArray.getJSONObject(currency[i]);
-
                         JSONObject itemFiat = itemCurrencies.getJSONObject(fiat);
 
                         String ticker = "";

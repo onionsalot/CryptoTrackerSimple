@@ -25,7 +25,6 @@ public class CryptoLoader extends AsyncTaskLoader<List<Ticker>> {
         Log.d(TAG, "CryptoLoader: stated");
         mURL = bundle.getString(GET_URL);
         mStrings = bundle.getStringArray(OPERATION_ADD);
-
         if (mURL.equals(CRYPTOCOMPARE_COINLIST)) {
             jsonType = 1;
         } else {
@@ -42,10 +41,11 @@ public class CryptoLoader extends AsyncTaskLoader<List<Ticker>> {
     @Override
     public List<Ticker> loadInBackground() {
         Log.d(TAG, "loadInBackground: started");
-    if (mURL == null) {
-        return null;
-    }
+        if (mURL == null) {
+            return null;
+        }
         try {
+
             URL searchURL = NetworkUtils.buildURL(mURL);
             String currencyResults = NetworkUtils.getResponseFromHttpUrl(searchURL);
             ArrayList<Ticker> list = NetworkUtils.extractFeatureFromJson(currencyResults,mStrings,"USD", jsonType);

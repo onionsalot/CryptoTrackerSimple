@@ -109,6 +109,8 @@ public class CryptoProvider extends ContentProvider {
     public int update(@NonNull Uri uri, @Nullable ContentValues values, @Nullable String selection, @Nullable String[] selectionArgs) {
         final int match = sUriMatcher.match(uri);
         switch (match) {
+            case CRYPTO:
+                return updateCrypto(uri,values, selection, selectionArgs);
             case CRYPTO_ID:
                 selection = CryptoContract.CryptoEntry._ID + "=?";
                 selectionArgs = new String[] {String.valueOf(ContentUris.parseId(uri)) };
@@ -148,6 +150,7 @@ public class CryptoProvider extends ContentProvider {
             return 0;
         }
         SQLiteDatabase database = mCryptoDbHelper.getWritableDatabase();
+        getContext().getContentResolver().notifyChange(uri, null);
             return database.update(CryptoContract.CryptoEntry.TABLE_NAME, values, selection,selectionArgs);
     }
 }
