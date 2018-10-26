@@ -5,6 +5,7 @@ public class Ticker {
     private String mPrice;
     private String mTicker;
     private String mPicture;
+    private String mTime;
 
     public String getName() {
         return mName;
@@ -22,6 +23,7 @@ public class Ticker {
         return mPicture;
     }
 
+    public String getTime() { return mTime; }
     public Ticker() {
     }
 
@@ -34,5 +36,9 @@ public class Ticker {
         mName = name;
         mTicker = ticker;
         mPicture = picture;
+    }
+
+    public Ticker(String time) {
+        mTime = time;
     }
 }

@@ -10,6 +10,8 @@ import android.content.Loader;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.graphics.Color;
+import android.graphics.Paint;
 import android.net.Uri;
 import android.preference.PreferenceManager;
 import android.provider.BaseColumns;
@@ -24,6 +26,18 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.github.mikephil.charting.charts.BarChart;
+import com.github.mikephil.charting.charts.CandleStickChart;
+import com.github.mikephil.charting.components.AxisBase;
+import com.github.mikephil.charting.components.XAxis;
+import com.github.mikephil.charting.data.BarData;
+import com.github.mikephil.charting.data.BarDataSet;
+import com.github.mikephil.charting.data.BarEntry;
+import com.github.mikephil.charting.data.CandleData;
+import com.github.mikephil.charting.data.CandleDataSet;
+import com.github.mikephil.charting.data.CandleEntry;
+import com.github.mikephil.charting.formatter.IAxisValueFormatter;
+
 import org.example.trongnguyen.cryptotracker.database.CryptoContract;
 import org.example.trongnguyen.cryptotracker.database.CryptoCursorAdapter;
 import org.example.trongnguyen.cryptotracker.database.CryptoDbHelper;
@@ -35,7 +49,7 @@ public class MainActivity extends AppCompatActivity implements CryptoCursorAdapt
 
     private int TICKER_LOADER = 0;
     private int CURSOR_LOADER = 1;
-    private int DATABASE_UPDATE_LOADER = 2;
+    private int CLICKED_ITEM_LOADER = 2;
 
     private static final String TAG = "MainActivity";
     ArrayList<Ticker> tickerList = new ArrayList<>();
@@ -55,6 +69,7 @@ public class MainActivity extends AppCompatActivity implements CryptoCursorAdapt
     private String addedName;
     private boolean addOrNah;
     private boolean updateData;
+    CandleStickChart chart;
     RecyclerView recyclerView;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -109,8 +124,33 @@ public class MainActivity extends AppCompatActivity implements CryptoCursorAdapt
         recyclerView.setAdapter(mCryptoCursorAdapter);
 
 
+        chart = (CandleStickChart) findViewById(R.id.chart);
 
     }
+
+
+    private CandleDataSet getDataSet() {
+        ArrayList<CandleEntry> entries = new ArrayList<>();
+        entries.add(new CandleEntry(0, 4.62f, 2.02f, 2.70f, 4.13f));
+        entries.add(new CandleEntry(1, 5.50f, 2.70f, 3.35f, 4.96f));
+        entries.add(new CandleEntry(2, 5.25f, 3.02f, 3.50f, 1.50f));
+        entries.add(new CandleEntry(3, 6f,    3.25f, 4.40f, 5.0f));
+        entries.add(new CandleEntry(4, 5.57f, 2f,    2.80f, 4.5f));
+        CandleDataSet dataSet = new CandleDataSet(entries, "# of Calls");
+        dataSet.setColor(Color.rgb(80, 80, 80));
+        dataSet.setShadowColor(Color.DKGRAY);
+        dataSet.setShadowWidth(0.7f);
+        dataSet.setDecreasingColor(Color.RED);
+        dataSet.setDecreasingPaintStyle(Paint.Style.FILL);
+        dataSet.setIncreasingColor(Color.rgb(122, 242, 84));
+        dataSet.setIncreasingPaintStyle(Paint.Style.FILL);
+        dataSet.setNeutralColor(Color.BLUE);
+        dataSet.setValueTextColor(Color.RED);
+
+        return dataSet;
+    }
+
+
 
     public void tempAdd() {
         ContentValues values = new ContentValues();
@@ -183,9 +223,18 @@ public class MainActivity extends AppCompatActivity implements CryptoCursorAdapt
         mToast.show();
         Cursor cursor = mCryptoCursorAdapter.getCursor();
         cursor.moveToPosition(clickedIndex);
-        int nameColumnIndex = cursor.getColumnIndex(CryptoContract.CryptoEntry.COLUMN_CRYPTO_NAME);
+        int nameColumnIndex = cursor.getColumnIndex(CryptoContract.CryptoEntry.COLUMN_CRYPTO_TICKER);
         String name = cursor.getString(nameColumnIndex);
         mDataPrint.setText(name);
+
+        searchItems = new String[] {name};
+        currencyURL = NetworkUtils.buildUri(name);
+        LoaderManager loaderManager = getLoaderManager();
+        Loader<String> loader = loaderManager.getLoader(CLICKED_ITEM_LOADER);
+        Bundle bundle = new Bundle();
+        bundle.putStringArray(OPERATION_ADD, searchItems);
+        bundle.putString(GET_URL, currencyURL);
+        loaderManager.initLoader(CLICKED_ITEM_LOADER,bundle,this);
 //        if (clickedIndex == 0) {
 //            makeCurrencyQuery("BTC");
 //        } else {
@@ -214,6 +263,8 @@ public class MainActivity extends AppCompatActivity implements CryptoCursorAdapt
                     null,
                     null,
                     null);
+        } else if (i == CLICKED_ITEM_LOADER) {
+            return new CryptoGraphLoader(this, bundle);
         }
         return null;
     }
@@ -251,6 +302,51 @@ public class MainActivity extends AppCompatActivity implements CryptoCursorAdapt
                     searchItems = fetchList.toArray(new String[0]);
                     makeCurrencyQuery(searchItems);
                 }
+            } else if (id == CLICKED_ITEM_LOADER) {
+                Log.d(TAG, "onLoadFinished: Item clicked. Loader finished");
+
+
+
+                ArrayList<CandleEntry> entries = (ArrayList<CandleEntry>) data;
+
+
+                CandleDataSet dataSet = new CandleDataSet(entries, "# of Calls");
+                dataSet.setColor(Color.rgb(80, 80, 80));
+                dataSet.setShadowColor(Color.DKGRAY);
+                dataSet.setShadowWidth(0.7f);
+                dataSet.setDecreasingColor(Color.RED);
+                dataSet.setDecreasingPaintStyle(Paint.Style.FILL);
+                dataSet.setIncreasingColor(Color.rgb(122, 242, 84));
+                dataSet.setIncreasingPaintStyle(Paint.Style.FILL);
+                dataSet.setNeutralColor(Color.BLUE);
+                dataSet.setValueTextColor(Color.RED);
+
+                getLoaderManager().destroyLoader(CLICKED_ITEM_LOADER);
+
+                CandleData candleData = new CandleData(dataSet);
+                chart.setData(candleData);
+                chart.invalidate();
+
+                int count = entries.size();
+                ArrayList<String> timeArray = new ArrayList<String>();
+                // the labels that should be drawn on the XAxis
+                for (int i = 0; i < count; i++) {
+                    timeArray.add("Time"+i);
+                }
+                final String[] quarters = timeArray.toArray(new String[0]);
+                IAxisValueFormatter formatter = new IAxisValueFormatter() {
+
+                    @Override
+                    public String getFormattedValue(float value, AxisBase axis) {
+                        return quarters[(int) value];
+                    }
+
+
+                };
+
+                XAxis xAxis = chart.getXAxis();
+                xAxis.setGranularity(1f); // minimum axis-step (interval) is 1
+                xAxis.setValueFormatter(formatter);
             }
         }
     }
@@ -294,5 +390,4 @@ public class MainActivity extends AppCompatActivity implements CryptoCursorAdapt
 
         recyclerView.setAdapter(mCryptoCursorAdapter);
     }
-
 }
